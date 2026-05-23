@@ -1,12 +1,9 @@
 package;
 
-import openfl.display.BlendMode;
-import openfl.text.TextFormat;
-import openfl.display.Application;
-import flixel.util.FlxColor;
 import flixel.FlxG;
 import flixel.FlxGame;
 import flixel.FlxState;
+import flixel.util.FlxColor;
 import openfl.Assets;
 import openfl.Lib;
 import openfl.display.FPS;
@@ -15,15 +12,13 @@ import openfl.events.Event;
 
 class Main extends Sprite
 {
-	var gameWidth:Int = 1280; // Width of the game in pixels (might be less / more in actual pixels depending on your zoom).
-	var gameHeight:Int = 720; // Height of the game in pixels (might be less / more in actual pixels depending on your zoom).
-	var initialState:Class<FlxState> = TitleState; // The FlxState the game starts with.
-	var zoom:Float = -1; // If -1, zoom is automatically calculated to fit the window dimensions.
-	var framerate:Int = 120; // How many frames per second the game should run at.
-	var skipSplash:Bool = true; // Whether to skip the flixel splash screen that appears in release mode.
-	var startFullscreen:Bool = false; // Whether to start the game in fullscreen on desktop targets
-
-	// You can pretty much ignore everything from here on - your code should go in your states.
+	var gameWidth:Int = 1280;
+	var gameHeight:Int = 720;
+	var initialState:Class<FlxState> = TitleState;
+	var zoom:Float = -1;
+	var framerate:Int = 120;
+	var skipSplash:Bool = true;
+	var startFullscreen:Bool = false;
 
 	public static function main():Void
 	{
@@ -35,21 +30,15 @@ class Main extends Sprite
 		super();
 
 		if (stage != null)
-		{
 			init();
-		}
 		else
-		{
 			addEventListener(Event.ADDED_TO_STAGE, init);
-		}
 	}
 
 	private function init(?E:Event):Void
 	{
 		if (hasEventListener(Event.ADDED_TO_STAGE))
-		{
 			removeEventListener(Event.ADDED_TO_STAGE, init);
-		}
 
 		setupGame();
 	}
@@ -76,26 +65,24 @@ class Main extends Sprite
 
 		addChild(game);
 
+		#if desktop
 		var ourSource:String = "assets/videos/DO NOT DELETE OR GAME WILL CRASH/dontDelete.webm";
-
-       #if web
-       var str1:String = "HTML CRAP";
-       var vHandler = new VideoHandler();
-       vHandler.init1();
-       vHandler.video.name = str1;
-       addChild(vHandler.video);
-       vHandler.init2();
-       GlobalVideo.setVid(vHandler);
-       vHandler.source(ourSource);
-       #elseif desktop
-       var str1:String = "WEBM SHIT"; 
-       var webmHandle = new WebmHandler();
-       webmHandle.source(ourSource);
-       webmHandle.makePlayer();
-       webmHandle.webm.name = str1;
-       addChild(webmHandle.webm);
-       GlobalVideo.setWebm(webmHandle);
-       #end
+		var webmHandle = new WebmHandler();
+		webmHandle.source(ourSource);
+		webmHandle.makePlayer();
+		webmHandle.webm.name = "WEBM SHIT";
+		addChild(webmHandle.webm);
+		GlobalVideo.setWebm(webmHandle);
+		#elseif web
+		var ourSource:String = "assets/videos/DO NOT DELETE OR GAME WILL CRASH/dontDelete.webm";
+		var vHandler = new VideoHandler();
+		vHandler.init1();
+		vHandler.video.name = "HTML CRAP";
+		addChild(vHandler.video);
+		vHandler.init2();
+		GlobalVideo.setVid(vHandler);
+		vHandler.source(ourSource);
+		#end
 
 		#if !mobile
 		fpsCounter = new FPS(10, 3, 0xFFFFFF);
@@ -106,18 +93,21 @@ class Main extends Sprite
 
 	var game:FlxGame;
 
+	#if !mobile
 	var fpsCounter:FPS;
 
-	public function toggleFPS(fpsEnabled:Bool):Void {
+	public function toggleFPS(fpsEnabled:Bool):Void
+	{
 		fpsCounter.visible = fpsEnabled;
 	}
 
-	public function changeFPSColor(color:FlxColor)
+	public function changeFPSColor(color:FlxColor):Void
 	{
 		fpsCounter.textColor = color;
 	}
+	#end
 
-	public function setFPSCap(cap:Float)
+	public function setFPSCap(cap:Float):Void
 	{
 		openfl.Lib.current.stage.frameRate = cap;
 	}
@@ -127,8 +117,10 @@ class Main extends Sprite
 		return openfl.Lib.current.stage.frameRate;
 	}
 
+	#if !mobile
 	public function getFPS():Float
 	{
 		return fpsCounter.currentFPS;
 	}
+	#end
 }
