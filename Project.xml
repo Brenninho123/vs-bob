@@ -68,7 +68,6 @@
 	<haxelib name="flixel-ui" />
 	<haxelib name="hscript" />
 	<haxelib name="actuate" />
-	<haxelib name="newgrounds" />
 	<haxelib name="polymod" />
 
 	<haxelib name="extension-webm" if="desktop" />
