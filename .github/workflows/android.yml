@@ -1,0 +1,71 @@
+name: Android Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Haxe 4.3.7
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.3.7
+
+      - name: Accept Android SDK licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+
+      - name: Install Android SDK components
+        run: |
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "ndk;25.2.9519653" \
+            "build-tools;34.0.0" \
+            "platforms;android-33"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653" >> $GITHUB_ENV
+
+      - name: Install haxelibs
+        run: |
+          haxelib install lime 8.3.2 --quiet
+          haxelib install openfl 9.5.2 --quiet
+          haxelib install flixel 4.11.0 --quiet
+          haxelib install flixel-addons 2.11.0 --quiet
+          haxelib install flixel-ui --quiet
+          haxelib install hscript --quiet
+          haxelib install actuate --quiet
+          haxelib install polymod --quiet
+          haxelib run lime setup --quiet
+
+      - name: Setup lime Android
+        run: |
+          printf "$ANDROID_HOME\n$ANDROID_NDK_HOME\n$JAVA_HOME\n" \
+            | haxelib run lime setup android
+
+      - name: Build Android APK
+        run: haxelib run lime build android -release
+
+      - name: Locate APK
+        run: |
+          APK_PATH=$(find exportJon/release -name "*.apk" | head -1)
+          echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vs-bob-android
+          path: ${{ env.APK_PATH }}
+          retention-days: 7
