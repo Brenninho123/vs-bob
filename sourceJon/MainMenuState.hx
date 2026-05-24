@@ -5,14 +5,12 @@ import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;
 import flixel.effects.FlxFlicker;
-import flixel.graphics.frames.FlxAtlasFrames;
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.text.FlxText;
-import flixel.system.FlxSound;
+import flixel.sound.FlxSound;
 import flixel.tweens.FlxEase;
 import flixel.tweens.FlxTween;
 import flixel.util.FlxColor;
-import io.newgrounds.NG;
 import lime.app.Application;
 
 #if windows
@@ -30,7 +28,6 @@ class MainMenuState extends MusicBeatState
 	var secretguy:FlxSprite;
 	var isguydancing:Bool = false;
 
-
 	var menuItems:FlxTypedGroup<FlxSprite>;
 
 	#if !switch
@@ -44,28 +41,26 @@ class MainMenuState extends MusicBeatState
 	var newInput:Bool = true;
 
 	public static var nightly:String = "bob";
-
 	public static var kadeEngineVer:String = "bob" + nightly;
 	public static var gameVer:String = "BOB";
 
 	var magenta:FlxSprite;
 	var camFollow:FlxObject;
 
+	#if mobile
+	var touchStartY:Float = 0;
+	var touchMoved:Bool = false;
+	var backButton:FlxText;
+	#end
+
 	override function create()
 	{
-		/**if (FlxG.random.bool(4))
-		{
-			GuyAppears(FlxG.random.int(1, 3));
-		}**/
 		#if windows
-		// Updating Discord Rich Presence
 		DiscordClient.changePresence("In the Menus", null);
 		#end
 
 		if (!FlxG.sound.music.playing)
-		{
 			FlxG.sound.playMusic(Paths.music('freakyMenu'));
-		}
 
 		persistentUpdate = persistentDraw = true;
 
@@ -91,14 +86,13 @@ class MainMenuState extends MusicBeatState
 		magenta.antialiasing = true;
 		magenta.color = 0xFFfd719b;
 		add(magenta);
-		// magenta.scrollFactor.set();
 
 		menuItems = new FlxTypedGroup<FlxSprite>();
 		add(menuItems);
+
 		if (FlxG.random.bool(10))
-		{
 			MainMenuSpin = FlxG.random.int(1, 3);
-		}
+
 		if (FlxG.random.bool(10))
 		{
 			isguydancing = true;
@@ -128,13 +122,18 @@ class MainMenuState extends MusicBeatState
 		versionShit.setFormat("VCR OSD Mono", 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		add(versionShit);
 
-		// NG.core.calls.event.logEvent('swag').send();
-
-
 		if (FlxG.save.data.dfjk)
 			controls.setKeyboardScheme(KeyboardScheme.Solo, true);
 		else
 			controls.setKeyboardScheme(KeyboardScheme.Duo(true), true);
+
+		#if mobile
+		backButton = new FlxText(FlxG.width - 100, FlxG.height - 60, 0, "B", 40);
+		backButton.setFormat("VCR OSD Mono", 40, FlxColor.WHITE, RIGHT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		backButton.scrollFactor.set();
+		backButton.alpha = 0.75;
+		add(backButton);
+		#end
 
 		changeItem();
 
@@ -145,25 +144,25 @@ class MainMenuState extends MusicBeatState
 
 	override function update(elapsed:Float)
 	{
-		timer = timer + 0.01;
+		timer += 0.01;
+
 		for (str in menuItems)
 		{
-			var thisX:Float =  Math.sin(timer * (timer / 10)) / 5;
-			var thisY:Float =  Math.sin(timer * (timer / 20)) / 5;
+			var thisX:Float = Math.sin(timer * (timer / 10)) / 5;
+			var thisY:Float = Math.sin(timer * (timer / 20)) / 5;
+
 			if (str.ID == 1 && MainMenuSpin == 1)
-			{
 				str.angle = str.angle + timer;
-			}
+
 			if (str.ID == 0 && MainMenuSpin == 2)
 			{
 				str.scale.x = 1 + thisX;
 				str.scale.y = 1 - thisY;
 			}
 		}
+
 		if (FlxG.sound.music.volume < 0.8)
-		{
 			FlxG.sound.music.volume += 0.5 * FlxG.elapsed;
-		}
 
 		if (!selectedSomethin)
 		{
@@ -180,64 +179,19 @@ class MainMenuState extends MusicBeatState
 			}
 
 			if (controls.BACK)
-			{
 				FlxG.switchState(new TitleState());
-			}
 
 			if (controls.ACCEPT)
-			{
-				if (optionShit[curSelected] == 'donate')
-				{
-					FlxG.sound.play(Paths.sound('fartsoundlol'));
-					FlxFlicker.flicker(magenta, 1.1, 0.15, false);
-				}
-				else
-				{
-					selectedSomethin = true;
-					if (isguydancing)
-					{
-						secretmusic.stop();
-					}
-					FlxG.sound.play(Paths.sound('confirmMenu'));
+				handleSelect();
 
-					FlxFlicker.flicker(magenta, 1.1, 0.15, false);
+			#if mobile
+			handleTouch();
+			#end
 
-					menuItems.forEach(function(spr:FlxSprite)
-					{
-						if (curSelected != spr.ID)
-						{
-							FlxTween.tween(spr, {alpha: 0}, 1.3, {
-								ease: FlxEase.quadOut,
-								onComplete: function(twn:FlxTween)
-								{
-									spr.kill();
-								}
-							});
-						}
-						else
-						{
-							FlxFlicker.flicker(spr, 1, 0.06, false, false, function(flick:FlxFlicker)
-							{
-								var daChoice:String = optionShit[curSelected];
-
-								switch (daChoice)
-								{
-									case 'story mode':
-										FlxG.switchState(new StoryMenuState());
-										trace("Story Menu Selected");
-									case 'freeplay':
-										FlxG.switchState(new FreeplayState());
-
-										trace("Freeplay Menu Selected");
-
-									case 'options':
-										FlxG.switchState(new OptionsMenu());
-								}
-							});
-						}
-					});
-				}
-			}
+			#if android
+			if (FlxG.keys.justReleased.BACK)
+				FlxG.switchState(new TitleState());
+			#end
 		}
 
 		super.update(elapsed);
@@ -247,24 +201,123 @@ class MainMenuState extends MusicBeatState
 			spr.screenCenter(X);
 		});
 	}
-	function GuyAppears(rando)
+
+	#if mobile
+	function handleTouch():Void
 	{
-		if (rando == 1)
+		if (FlxG.touches.count() == 0)
 		{
-			secretmusic = new FlxSound().loadEmbedded(Paths.sound('GuyDancing'));
-			secretmusic.looped = true;
-			secretmusic.volume = 0.3;
-			secretguy = new FlxSprite(0, 0);
-			secretguy.frames = Paths.getSparrowAtlas('CoolDance');
-			secretguy.animation.addByPrefix('idle', 'CoolGuy', 24);
-			secretguy.updateHitbox();
-			secretguy.scrollFactor.set();
-			add(secretguy);
-			secretmusic.play();
-			secretguy.animation.play('idle');
+			touchMoved = false;
+			return;
 		}
-		if (rando == 2)
+
+		var touch = FlxG.touches.getFirst();
+
+		if (touch.justPressed)
+		{
+			touchStartY = touch.screenY;
+			touchMoved = false;
+		}
+
+		if (touch.pressed)
+		{
+			var deltaY = touch.screenY - touchStartY;
+			if (Math.abs(deltaY) > 30)
+				touchMoved = true;
+
+			if (touchMoved)
 			{
+				if (deltaY < -30)
+				{
+					FlxG.sound.play(Paths.sound('scrollMenu'));
+					changeItem(-1);
+					touchStartY = touch.screenY;
+				}
+				else if (deltaY > 30)
+				{
+					FlxG.sound.play(Paths.sound('scrollMenu'));
+					changeItem(1);
+					touchStartY = touch.screenY;
+				}
+			}
+		}
+
+		if (touch.justReleased && !touchMoved)
+		{
+			if (backButton != null
+				&& touch.screenX >= backButton.x
+				&& touch.screenX <= backButton.x + backButton.width
+				&& touch.screenY >= backButton.y
+				&& touch.screenY <= backButton.y + backButton.height)
+			{
+				FlxG.switchState(new TitleState());
+				return;
+			}
+
+			handleSelect();
+		}
+	}
+	#end
+
+	function handleSelect():Void
+	{
+		if (optionShit[curSelected] == 'donate')
+		{
+			FlxG.sound.play(Paths.sound('fartsoundlol'));
+			FlxFlicker.flicker(magenta, 1.1, 0.15, false);
+		}
+		else
+		{
+			selectedSomethin = true;
+
+			if (isguydancing)
+				secretmusic.stop();
+
+			FlxG.sound.play(Paths.sound('confirmMenu'));
+			FlxFlicker.flicker(magenta, 1.1, 0.15, false);
+
+			menuItems.forEach(function(spr:FlxSprite)
+			{
+				if (curSelected != spr.ID)
+				{
+					FlxTween.tween(spr, {alpha: 0}, 1.3, {
+						ease: FlxEase.quadOut,
+						onComplete: function(twn:FlxTween) { spr.kill(); }
+					});
+				}
+				else
+				{
+					FlxFlicker.flicker(spr, 1, 0.06, false, false, function(flick:FlxFlicker)
+					{
+						switch (optionShit[curSelected])
+						{
+							case 'story mode': FlxG.switchState(new StoryMenuState());
+							case 'freeplay':   FlxG.switchState(new FreeplayState());
+							case 'options':    FlxG.switchState(new OptionsMenu());
+						}
+					});
+				}
+			});
+		}
+	}
+
+	function GuyAppears(rando:Int):Void
+	{
+		switch (rando)
+		{
+			case 1:
+				secretmusic = new FlxSound().loadEmbedded(Paths.sound('GuyDancing'));
+				secretmusic.looped = true;
+				secretmusic.volume = 0.3;
+				secretguy = new FlxSprite(0, 0);
+				secretguy.frames = Paths.getSparrowAtlas('CoolDance');
+				secretguy.animation.addByPrefix('idle', 'CoolGuy', 24);
+				secretguy.updateHitbox();
+				secretguy.scrollFactor.set();
+				add(secretguy);
+				secretmusic.play();
+				secretguy.animation.play('idle');
+			case 2:
 				secretmusic = new FlxSound().loadEmbedded(Paths.sound('SortingAlgorithm'));
 				secretmusic.looped = true;
 				secretmusic.volume = 0.3;
@@ -276,23 +329,19 @@ class MainMenuState extends MusicBeatState
 				add(secretguy);
 				secretmusic.play();
 				secretguy.animation.play('idle');
-			}
-		if (rando == 3)
-				{
-					secretmusic = new FlxSound().loadEmbedded(Paths.sound('SpongSound'));
-					secretmusic.looped = true;
-					secretmusic.volume = 0.3;
-					secretguy = new FlxSprite(0, 0);
-					secretguy.frames = Paths.getSparrowAtlas('Spong');
-					secretguy.animation.addByPrefix('idle', 'Dad idle dance', 24);
-					secretguy.updateHitbox();
-					secretguy.scrollFactor.set();
-					add(secretguy);
-					secretmusic.play();
-					secretguy.animation.play('idle');
-				}
-		if (rando == 4)
-			{
+			case 3:
+				secretmusic = new FlxSound().loadEmbedded(Paths.sound('SpongSound'));
+				secretmusic.looped = true;
+				secretmusic.volume = 0.3;
+				secretguy = new FlxSprite(0, 0);
+				secretguy.frames = Paths.getSparrowAtlas('Spong');
+				secretguy.animation.addByPrefix('idle', 'Dad idle dance', 24);
+				secretguy.updateHitbox();
+				secretguy.scrollFactor.set();
+				add(secretguy);
+				secretmusic.play();
+				secretguy.animation.play('idle');
+			case 4:
 				secretmusic = new FlxSound().loadEmbedded(Paths.sound('crazy_little_guy'));
 				secretmusic.looped = true;
 				secretmusic.volume = 0.5;
@@ -304,17 +353,17 @@ class MainMenuState extends MusicBeatState
 				add(secretguy);
 				secretmusic.play();
 				secretguy.animation.play('idle');
-			}
+		}
 	}
-	function changeItem(huh:Int = 0)
+
+	function changeItem(huh:Int = 0):Void
 	{
 		for (str in menuItems)
-			{
-				if (str.ID == 3 && MainMenuSpin == 3)
-				{
-					str.scale.x = str.scale.x + 0.1;
-				}
-			}
+		{
+			if (str.ID == 3 && MainMenuSpin == 3)
+				str.scale.x = str.scale.x + 0.1;
+		}
+
 		curSelected += huh;
 
 		if (curSelected >= menuItems.length)
